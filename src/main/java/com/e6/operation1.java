@@ -9,6 +9,7 @@ import java.lang.foreign.ValueLayout;
 import java.nio.ByteBuffer;
 
 public class operation1 {
+    public static long commonMemorySize = 1024;
     public static void javaInternalAddition(long[] array1, long[] array2){
         long[] array3 = new long[array1.length];
 
@@ -39,7 +40,7 @@ public class operation1 {
         }
 
         // Create the FlatBuffers object for it
-        MemorySegment segment = Arena.ofAuto().allocate(1024);
+        MemorySegment segment = Arena.ofAuto().allocate(commonMemorySize);
         ByteBuffer directBuffer = segment.asByteBuffer();
         FlatBufferBuilder builder = new FlatBufferBuilder(directBuffer);
 
@@ -63,6 +64,7 @@ public class operation1 {
     public static void cppAddition(long address, long length, long position){
         System.out.println("CPP Addition:");
         String libraryPath = "src/main/native/liboperations.dylib";
+
         Chunk chunk = Helper.deserializeChunk(libraryPath, "addition", address, length, position);
 
         long[] arrayProperties = Helper.readInt64Vector((Int64Vector) chunk.vectors(new Int64Vector(), 0));
@@ -72,6 +74,7 @@ public class operation1 {
             System.out.print(memorySegment.get(ValueLayout.JAVA_LONG, i*Long.BYTES) + ", ");
         }
         System.out.println("\n");
+
     }
 
     public static void main(String args[]){
@@ -86,7 +89,7 @@ public class operation1 {
         }
 
         // Create a FlatBufferBuilder with an initial size
-        MemorySegment segment = Arena.ofAuto().allocate(1024);
+        MemorySegment segment = Arena.ofAuto().allocate(commonMemorySize);
         ByteBuffer directBuffer = segment.asByteBuffer();
         FlatBufferBuilder builder = new FlatBufferBuilder(directBuffer);
 

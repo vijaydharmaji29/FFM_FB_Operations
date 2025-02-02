@@ -32,7 +32,7 @@ public class OperationsBenchmark {
     @Setup
     public void setup() {
         // Initialize arrays
-        int size = 10;
+        int size = 10000;
         exampleArray1 = new long[size];
         exampleArray2 = new long[size];
 
@@ -63,10 +63,10 @@ public class OperationsBenchmark {
         operationBenchmark.javaInternalAddition(exampleArray1, exampleArray2);
     }
 
-//    @Benchmark
-//    public void benchmarkJavaAddition() {
-//        operationBenchmark.javaAddition(address, length, position);
-//    }
+    @Benchmark
+    public void benchmarkJavaAddition() {
+        operationBenchmark.javaAddition(address, length, position);
+    }
 
     @Benchmark
     public void benchmarkCppAddition() {
@@ -80,7 +80,7 @@ public class OperationsBenchmark {
                 "--add-opens=java.base/jdk.internal.ref=ALL-UNNAMED",
                 "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
                 "--enable-preview",
-                "-XX:MaxDirectMemorySize=2G", // Increase direct memory
+                "-XX:MaxDirectMemorySize=16G", // Increase direct memory
                 "-Xmx4G" // Increase heap size
                 )
                 .forks(1)

@@ -18,12 +18,6 @@ public class operationBenchmark {
         for(int i = 0; i < array1.length; i++){
             array3[i] = array1[i] + array2[i];
         }
-
-//        System.out.println("Java Internal Addition:");
-//        for(int i = 0; i < array3.length; i++){
-//            System.out.print(array3[i] + ", ");
-//        }
-//        System.out.println("\n");
     }
 
     public static void javaAddition(long address, long length, long position){
@@ -42,7 +36,7 @@ public class operationBenchmark {
         }
 
         // Create the FlatBuffers object for it
-        MemorySegment segment = Arena.ofConfined().allocate(1024);
+        MemorySegment segment = Arena.ofAuto().allocate(1024);
         ByteBuffer directBuffer = segment.asByteBuffer();
         FlatBufferBuilder builder = new FlatBufferBuilder(directBuffer);
 
@@ -52,29 +46,19 @@ public class operationBenchmark {
         long[] ret = Helper.createChunk(builder, vectors, vectorTypes);
 
         // Deserialize the FlatBuffers memory segment and print it again
-//        System.out.println("Java Addition:");
         Chunk chunkOutput = Helper.deserialzeChunk(ret[0], ret[1], ret[2]);
         long[] arrayOutputProperties = Helper.readInt64Vector((Int64Vector) chunkOutput.vectors(new Int64Vector(), 0));
         MemorySegment memorySegment = Helper.readLongAddress(arrayOutputProperties[0], arrayOutputProperties[2]);
 
-//        for(long i = 0; i < arrayOutputProperties[2]; i++){
-//            System.out.print(memorySegment.get(ValueLayout.JAVA_LONG, i*Long.BYTES) + ", ");
-//        }
-//        System.out.println("\n");
 
     }
     public static void cppAddition(long address, long length, long position){
-//        System.out.println("CPP Addition:");
         String libraryPath = "src/main/native/liboperations.dylib";
         Chunk chunk = Helper.deserializeChunk(libraryPath, "addition", address, length, position);
 
         long[] arrayProperties = Helper.readInt64Vector((Int64Vector) chunk.vectors(new Int64Vector(), 0));
         MemorySegment memorySegment = Helper.readLongAddress(arrayProperties[0], arrayProperties[2]);
-//
-//        for(long i = 0; i < arrayProperties[2]; i++){
-//            System.out.print(memorySegment.get(ValueLayout.JAVA_LONG, i*Long.BYTES) + ", ");
-//        }
-//        System.out.println("\n");
+
     }
 
     public static void main(String args[]){
@@ -89,7 +73,7 @@ public class operationBenchmark {
         }
 
         // Create a FlatBufferBuilder with an initial size
-        MemorySegment segment = Arena.ofConfined().allocate(1024);
+        MemorySegment segment = Arena.ofAuto().allocate(1024);
         ByteBuffer directBuffer = segment.asByteBuffer();
         FlatBufferBuilder builder = new FlatBufferBuilder(directBuffer);
 

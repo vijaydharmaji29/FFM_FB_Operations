@@ -31,7 +31,7 @@ addressReturn serializeChunk(flatbuffers::FlatBufferBuilder& builder,
 
     // Prepare the return struct
     addressReturn result;
-    result.size = buf.size();
+    result.size = 1024;
     result.address = buf.data();
 
     return result;

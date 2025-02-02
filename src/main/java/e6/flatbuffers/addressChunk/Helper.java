@@ -10,7 +10,7 @@ import java.nio.ByteBuffer;
 public class Helper {
     public static long createLongArray(long[] array){
         // Allocate off-heap memory for the array
-        MemorySegment segment = Arena.ofConfined().allocate(array.length * Long.BYTES);
+        MemorySegment segment = Arena.ofAuto().allocate(array.length * Long.BYTES);
 
         // Store each long value in the memory segment
         for (int i = 0; i < array.length; i++) {
@@ -23,7 +23,7 @@ public class Helper {
 
     public static long createBooleanArray(boolean[] array){
         // Allocate memory for boolean values
-        MemorySegment segment = Arena.ofConfined().allocate(array.length); // Boolean values are stored as bytes
+        MemorySegment segment = Arena.ofAuto().allocate(array.length); // Boolean values are stored as bytes
 
         // Store each boolean value as a byte (1 = true, 0 = false)
         for (int i = 0; i < array.length; i++) {
@@ -77,7 +77,7 @@ public class Helper {
         // Create new byte buffer that persists
         ByteBuffer deserializationBuffer = builder.dataBuffer().duplicate();
 
-        // Retrieve the address of the direct buffer\
+        // Retrieve the address of the direct buffer
         long address = ((DirectBuffer) deserializationBuffer).address();
 
         // Get the direct buffer length
@@ -94,18 +94,18 @@ public class Helper {
     public static Chunk deserialzeChunk(long address, long size){
         // Convert the buffer to a MemorySegment
         MemorySegment bufferSegment = MemorySegment.ofAddress(address).reinterpret(size);
-
         // Convert to ByteBuffer
         ByteBuffer byteBuffer = bufferSegment.asByteBuffer();
 
         // Deserialize the root `Chunk` object
         Chunk chunk = Chunk.getRootAsChunk(byteBuffer);
 
+        byteBuffer.clear();
+
         return chunk;
     }
 
     public static Chunk deserialzeChunk(long address, long size, long posititon){
-        Chunk chunk;
         // Convert the buffer to a MemorySegment
         MemorySegment bufferSegment = MemorySegment.ofAddress(address).reinterpret(size);
 
@@ -114,7 +114,9 @@ public class Helper {
         byteBuffer.position((int) posititon);
 
         // Deserialize the root `Chunk` object
-        chunk = Chunk.getRootAsChunk(byteBuffer);
+        Chunk chunk = Chunk.getRootAsChunk(byteBuffer);
+
+        byteBuffer.clear();
 
         return chunk;
     }
@@ -126,7 +128,7 @@ public class Helper {
         long address;
 
         // Use an Arena for allocation
-        Arena arena = Arena.ofConfined();
+        Arena arena = Arena.ofAuto();
         // Call function and pass allocator
         MemorySegment structSegment = null;
         try {
@@ -146,7 +148,7 @@ public class Helper {
     }
 
     public static Chunk deserializeChunk(String path, String function) {
-        var arena = Arena.ofConfined();
+        var arena = Arena.ofAuto();
 
         // Path to the native library
         String libraryPath = path; // path to root file
@@ -171,8 +173,7 @@ public class Helper {
     }
 
     public static Chunk deserializeChunk(String path, String function, long address, long length, long position) {
-        var arena = Arena.ofConfined();
-
+        var arena = Arena.ofAuto();
         // Path to the native library
         String libraryPath = path; // path to root file
 
@@ -195,7 +196,7 @@ public class Helper {
         long retAdress, retSize;
 
         // Use an Arena for allocation
-        Arena arenaReturn = Arena.ofConfined();
+        Arena arenaReturn = Arena.ofAuto();
         // Call function and pass allocator
         MemorySegment structSegment = null;
         try {
@@ -206,6 +207,7 @@ public class Helper {
 
         // Read `size` from struct (offset 0)
         retSize = structSegment.get(ValueLayout.JAVA_LONG, 0);
+
 
         // Read `address` (pointer to buffer at offset 8)
         MemorySegment addressSegment = structSegment.get(ValueLayout.ADDRESS, 8);
