@@ -172,27 +172,7 @@ public class Helper {
         return deserialzeChunk(getFunctionPointer);
     }
 
-    public static Chunk deserializeChunk(String path, String function, long address, long length, long position) {
-        var arena = Arena.ofAuto();
-        // Path to the native library
-        String libraryPath = path; // path to root file
-
-        // Load the native library
-        Linker linker = Linker.nativeLinker();
-        SymbolLookup libraryLookup = SymbolLookup.libraryLookup(libraryPath, arena);
-
-        // Define struct layout manually
-        MemoryLayout structLayout = MemoryLayout.structLayout(
-                ValueLayout.JAVA_LONG.withName("size"),
-                ValueLayout.ADDRESS.withName("address")
-        );
-
-        // Get function pointer
-        MethodHandle getFunctionPointer = linker.downcallHandle(
-                libraryLookup.find(function).orElseThrow(),
-                FunctionDescriptor.of(structLayout, ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG)
-        );
-
+    public static Chunk deserializeChunk(String path, String function, long address, long length, long position, MethodHandle getFunctionPointer) {
         long retAdress, retSize;
 
         // Use an Arena for allocation

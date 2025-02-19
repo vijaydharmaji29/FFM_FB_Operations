@@ -9,8 +9,8 @@ import org.openjdk.jmh.runner.RunnerException;
 import org.openjdk.jmh.runner.options.Options;
 import org.openjdk.jmh.runner.options.OptionsBuilder;
 
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
+import java.lang.foreign.*;
+import java.lang.invoke.MethodHandle;
 import java.nio.ByteBuffer;
 import java.util.concurrent.TimeUnit;
 
@@ -18,9 +18,9 @@ import java.util.concurrent.TimeUnit;
 @BenchmarkMode(Mode.AverageTime)
 @OutputTimeUnit(TimeUnit.NANOSECONDS)
 @State(Scope.Thread)
-@Fork(value = 1, warmups = 1)
+@Fork(value = 1, warmups = 10)
 @Warmup(iterations = 3, time = 1)
-@Measurement(iterations = 5, time = 1)
+@Measurement(iterations = 3, time = 5)
 public class OperationsBenchmark {
 
     private long[] exampleArray1;
@@ -28,8 +28,11 @@ public class OperationsBenchmark {
     private long address;
     private long length;
     private long position;
+    MethodHandle functionPointer;
+    MethodHandle functionPointerCPPAddition;
+    MethodHandle functionPointerCPPAdditionSIMD;
 
-    @Setup
+    @Setup (Level.Trial)
     public void setup() {
         // Initialize arrays
         int size = 10000;
@@ -56,22 +59,72 @@ public class OperationsBenchmark {
         address = ret[0];
         length = ret[1];
         position = ret[2];
+
+
+        String libraryPath = "src/main/native/liboperations.dylib";
+        String function = "cppCall";
+
+        var arenaCppCall = Arena.ofAuto();
+
+        // Load the native library
+        Linker linker = Linker.nativeLinker();
+        SymbolLookup libraryLookup = SymbolLookup.libraryLookup(libraryPath, arenaCppCall);
+
+        // Get function pointer
+        functionPointer = linker.downcallHandle(
+                libraryLookup.find(function).orElseThrow(),
+                FunctionDescriptor.of(ValueLayout.JAVA_BOOLEAN)
+        );
+
+        // Load the native library
+        // Define struct layout manually
+        MemoryLayout structLayout = MemoryLayout.structLayout(
+                ValueLayout.JAVA_LONG.withName("size"),
+                ValueLayout.ADDRESS.withName("address")
+        );
+        function = "addition";
+        // Get function pointer
+        functionPointerCPPAddition = linker.downcallHandle(
+                libraryLookup.find(function).orElseThrow(),
+                FunctionDescriptor.of(structLayout, ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG)
+        );
+
+        // Get function pointer for CPP Addition SIMD
+        function = "additionSIMD";
+        functionPointerCPPAdditionSIMD = linker.downcallHandle(
+                libraryLookup.find(function).orElseThrow(),
+                FunctionDescriptor.of(structLayout, ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG, ValueLayout.JAVA_LONG)
+        );
+
+
     }
 
     @Benchmark
-    public void benchmarkJavaInternalAddition() {
-        operationBenchmark.javaInternalAddition(exampleArray1, exampleArray2);
+    public long benchmarkJavaInternalAddition() {
+        return operationBenchmark.javaInternalAddition(exampleArray1, exampleArray2);
     }
 
-    @Benchmark
-    public void benchmarkJavaAddition() {
-        operationBenchmark.javaAddition(address, length, position);
-    }
+//    @Benchmark
+//    public void benchmarkJavaAddition() {
+//        operationBenchmark.javaAddition(address, length, position);
+//    }
 
     @Benchmark
     public void benchmarkCppAddition() {
-        operationBenchmark.cppAddition(address, length, position);
+        operationBenchmark.cppAddition(address, length, position, functionPointerCPPAddition);
     }
+
+//    @Benchmark
+//    public void benchmarkCppAdditionSIMD() {
+//        operationBenchmark.cppAdditionSIMD(address, length, position, functionPointerCPPAdditionSIMD);
+//    }
+
+    @Benchmark
+    public void benchmarkCppCall(){
+        operationBenchmark.cppCall(functionPointer);
+    }
+
+
 
     public static void main(String[] args) throws RunnerException {
         Options opt = new OptionsBuilder()
@@ -80,7 +133,7 @@ public class OperationsBenchmark {
                 "--add-opens=java.base/jdk.internal.ref=ALL-UNNAMED",
                 "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
                 "--enable-preview",
-                "-XX:MaxDirectMemorySize=16G", // Increase direct memory
+                "-XX:MaxDirectMemorySize=8G", // Increase direct memory
                 "-Xmx4G" // Increase heap size
                 )
                 .forks(1)

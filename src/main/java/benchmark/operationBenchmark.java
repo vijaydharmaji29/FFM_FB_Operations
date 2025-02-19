@@ -6,18 +6,20 @@ import e6.flatbuffers.addressChunk.Helper;
 import e6.flatbuffers.addressChunk.Int64Vector;
 import e6.flatbuffers.addressChunk.Vector;
 
-import java.lang.foreign.Arena;
-import java.lang.foreign.MemorySegment;
-import java.lang.foreign.ValueLayout;
+import java.lang.foreign.*;
+import java.lang.invoke.MethodHandle;
+import java.lang.reflect.Method;
 import java.nio.ByteBuffer;
 
 public class operationBenchmark {
-    public static void javaInternalAddition(long[] array1, long[] array2){
+    public static long javaInternalAddition(long[] array1, long[] array2){
         long[] array3 = new long[array1.length];
 
         for(int i = 0; i < array1.length; i++){
             array3[i] = array1[i] + array2[i];
         }
+
+        return array3[0];
     }
 
     public static void javaAddition(long address, long length, long position){
@@ -52,12 +54,33 @@ public class operationBenchmark {
 
 
     }
-    public static void cppAddition(long address, long length, long position){
+    public static void cppAddition(long address, long length, long position, MethodHandle functionPointer){
         String libraryPath = "src/main/native/liboperations.dylib";
-        Chunk chunk = Helper.deserializeChunk(libraryPath, "addition", address, length, position);
+        Chunk chunk = Helper.deserializeChunk(libraryPath, "addition", address, length, position, functionPointer);
 
         long[] arrayProperties = Helper.readInt64Vector((Int64Vector) chunk.vectors(new Int64Vector(), 0));
         MemorySegment memorySegment = Helper.readLongAddress(arrayProperties[0], arrayProperties[2]);
+
+    }
+
+    public static void cppAdditionSIMD(long address, long length, long position, MethodHandle functionPointer){
+        String libraryPath = "src/main/native/liboperations.dylib";
+        Chunk chunk = Helper.deserializeChunk(libraryPath, "additionSIMD", address, length, position, functionPointer);
+
+        long[] arrayProperties = Helper.readInt64Vector((Int64Vector) chunk.vectors(new Int64Vector(), 0));
+        MemorySegment memorySegment = Helper.readLongAddress(arrayProperties[0], arrayProperties[2]);
+
+    }
+
+    public static void cppCall(MethodHandle functionPointer){
+
+        // Call function and pass allocator
+        boolean result;
+        try {
+            result = (boolean) functionPointer.invokeExact();
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
 
     }
 
@@ -82,8 +105,8 @@ public class operationBenchmark {
 
         long[] ret = Helper.createChunk(builder, vectors, vectorTypes);
 
-        javaAddition(ret[0], ret[1], ret[2]);
-        cppAddition(ret[0], ret[1], ret[2]);
-        javaInternalAddition(exampleArray1, exampleArray2);
+//        javaAddition(ret[0], ret[1], ret[2]);
+//        cppAddition(ret[0], ret[1], ret[2]);
+//        javaInternalAddition(exampleArray1, exampleArray2);
     }
 }
