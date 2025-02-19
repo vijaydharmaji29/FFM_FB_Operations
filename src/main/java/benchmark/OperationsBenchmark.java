@@ -28,9 +28,12 @@ public class OperationsBenchmark {
     private long address;
     private long length;
     private long position;
+    Arena arenaCppCall;
     MethodHandle functionPointer;
     MethodHandle functionPointerCPPAddition;
     MethodHandle functionPointerCPPAdditionSIMD;
+
+    MethodHandle functionPointerDirectAddition;
 
     @Setup (Level.Trial)
     public void setup() {
@@ -97,11 +100,28 @@ public class OperationsBenchmark {
         );
 
 
+        function = "add_long_arrays";
+        functionPointerDirectAddition = linker.downcallHandle(
+                libraryLookup.find(function).orElseThrow(),
+                FunctionDescriptor.ofVoid( // Function returns void
+                        ValueLayout.ADDRESS.withTargetLayout(ValueLayout.JAVA_LONG), // Pointer to long[] A
+                        ValueLayout.ADDRESS.withTargetLayout(ValueLayout.JAVA_LONG), // Pointer to long[] B
+                        ValueLayout.ADDRESS.withTargetLayout(ValueLayout.JAVA_LONG), // Pointer to result long[]
+                        ValueLayout.JAVA_LONG // Size of the arrays
+                )
+        );
+
+
     }
 
+//    @Benchmark
+//    public long benchmarkJavaInternalAddition() {
+//        return operationBenchmark.javaInternalAddition(exampleArray1, exampleArray2);
+//    }
+
     @Benchmark
-    public long benchmarkJavaInternalAddition() {
-        return operationBenchmark.javaInternalAddition(exampleArray1, exampleArray2);
+    public long[] benchmarkCppAdditionDirect(){
+        return operationBenchmark.cppDirectAddition(exampleArray1, exampleArray2, functionPointerDirectAddition);
     }
 
 //    @Benchmark
@@ -109,20 +129,20 @@ public class OperationsBenchmark {
 //        operationBenchmark.javaAddition(address, length, position);
 //    }
 
-    @Benchmark
-    public void benchmarkCppAddition() {
-        operationBenchmark.cppAddition(address, length, position, functionPointerCPPAddition);
-    }
+//    @Benchmark
+//    public void benchmarkCppAddition() {
+//        operationBenchmark.cppAddition(address, length, position, functionPointerCPPAddition);
+//    }
 
 //    @Benchmark
 //    public void benchmarkCppAdditionSIMD() {
 //        operationBenchmark.cppAdditionSIMD(address, length, position, functionPointerCPPAdditionSIMD);
 //    }
 
-    @Benchmark
-    public void benchmarkCppCall(){
-        operationBenchmark.cppCall(functionPointer);
-    }
+//    @Benchmark
+//    public void benchmarkCppCall(){
+//        operationBenchmark.cppCall(functionPointer);
+//    }
 
 
 
@@ -133,7 +153,7 @@ public class OperationsBenchmark {
                 "--add-opens=java.base/jdk.internal.ref=ALL-UNNAMED",
                 "--add-opens=java.base/sun.nio.ch=ALL-UNNAMED",
                 "--enable-preview",
-                "-XX:MaxDirectMemorySize=8G", // Increase direct memory
+                "-XX:MaxDirectMemorySize=16G", // Increase direct memory
                 "-Xmx4G" // Increase heap size
                 )
                 .forks(1)

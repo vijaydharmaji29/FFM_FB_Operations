@@ -150,3 +150,9 @@ extern "C" addressReturn additionSIMD(long address, long length, long position) 
 extern "C" bool cppCall(){
     return true;
 }
+
+extern "C" void add_long_arrays(const long* a, const long* b, long* result, std::size_t size) {
+    for (std::size_t i = 0; i < size; i++) {
+        result[i] = a[i] + b[i];
+    }
+}

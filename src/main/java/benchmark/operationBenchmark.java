@@ -72,16 +72,41 @@ public class operationBenchmark {
 
     }
 
-    public static void cppCall(MethodHandle functionPointer){
+    public static boolean cppCall(MethodHandle functionPointer){
 
         // Call function and pass allocator
         boolean result;
         try {
             result = (boolean) functionPointer.invokeExact();
+
+            return result;
         } catch (Throwable e) {
             throw new RuntimeException(e);
         }
 
+    }
+
+    public static long[] cppDirectAddition(long[] a, long[] b, MethodHandle functionPointer) {
+
+        int size = a.length;
+
+        // Allocate memory segments for the arrays
+        Arena arena = Arena.ofAuto();
+        MemorySegment aSegment = arena.allocateArray(ValueLayout.JAVA_LONG, a);
+        MemorySegment bSegment = arena.allocateArray(ValueLayout.JAVA_LONG, b);
+        MemorySegment resultSegment = arena.allocateArray(ValueLayout.JAVA_LONG, size);
+
+        // Call the C++ function
+        try {
+            functionPointer.invokeExact(aSegment, bSegment, resultSegment, (long) size);
+        } catch (Throwable e) {
+            throw new RuntimeException(e);
+        }
+
+        // Retrieve the results
+        long[] result = resultSegment.toArray(ValueLayout.JAVA_LONG);
+
+        return result;
     }
 
     public static void main(String args[]){
@@ -95,18 +120,5 @@ public class operationBenchmark {
             exampleArray2[i] = i * 10L;
         }
 
-        // Create a FlatBufferBuilder with an initial size
-        MemorySegment segment = Arena.ofAuto().allocate(1024);
-        ByteBuffer directBuffer = segment.asByteBuffer();
-        FlatBufferBuilder builder = new FlatBufferBuilder(directBuffer);
-
-        int[] vectors = {Helper.createInt64Vector(builder, exampleArray1), Helper.createInt64Vector(builder, exampleArray2)};
-        byte[] vectorTypes = {Vector.Int64Vector, Vector.Int64Vector};
-
-        long[] ret = Helper.createChunk(builder, vectors, vectorTypes);
-
-//        javaAddition(ret[0], ret[1], ret[2]);
-//        cppAddition(ret[0], ret[1], ret[2]);
-//        javaInternalAddition(exampleArray1, exampleArray2);
     }
 }
